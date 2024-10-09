@@ -1,19 +1,14 @@
-# Sample Hardhat Project
+# JackToken Vesting Contract
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
+Overview
 
-Try running some of the following tasks:
+The JackToken Vesting Contract manages the vesting schedule of $JACK tokens for team members, advisors, and early investors. It ensures a gradual release of tokens based on predefined schedules.
 
-```shell
-npx hardhat node
-```
 
+Next commands are available
 ```shell
 npx hardhat compile
-```
-
-
-```shell
+npx hardhat test
+npx hardhat node
 npx hardhat run scripts/deploy.js --network localhost
 ```
-
