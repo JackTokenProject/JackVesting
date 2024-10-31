@@ -3,18 +3,17 @@ pragma solidity ^0.8.19;
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract JackVesting is Context, Ownable, ReentrancyGuard {
+contract JackVesting is Context, Ownable {
     error TransferError(address sender, uint256 needed);
 
     struct Vesting {
         uint80 until;
+        bool claimed;
         uint256 amount;
         uint source;
-        bool claimed;
     }
     mapping(address => Vesting[]) vestings;
 
@@ -68,7 +67,7 @@ contract JackVesting is Context, Ownable, ReentrancyGuard {
         return vestings[_beneficiary];
     }
 
-    function claim(uint index) external nonReentrant {
+    function claim(uint index) external {
         address sender = _msgSender();
         require(vestings[sender].length > index, "Invalid Vesting Index");
         require(vestings[sender][index].claimed == false, "Allready Claimed");
