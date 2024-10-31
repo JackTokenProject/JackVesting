@@ -32,6 +32,7 @@ contract JackVesting is Context, Ownable {
     ) public onlyOwner returns (bool) {
         require(_beneficiary != address(0), "Invalid Beneficiary!");
         require(_amount != 0, "Invalid Amount!");
+        require(_until <= block.timestamp + maxVestingTime, "Vest is more than allowed");
 
 
         address sender = _msgSender();

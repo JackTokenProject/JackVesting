@@ -9,7 +9,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 
 contract JACK is ERC20Burnable, Ownable {
-    uint256 public maxSupply = 1_000_000_000 * (10 ** decimals());
+    uint256 constant public maxSupply = 1_000_000_000 ether;
 
     constructor() ERC20("JACK Token", "JACK") Ownable(msg.sender) {}
 
