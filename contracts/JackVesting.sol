@@ -15,7 +15,7 @@ contract JackVesting is Context, Ownable {
         uint256 amount;
         uint source;
     }
-    mapping(address => Vesting[]) vestings;
+    mapping(address vesting => Vesting[]) vestings;
 
     address public vestingToken;
     uint maxVestingTime = 3 * 365 days;
@@ -30,6 +30,10 @@ contract JackVesting is Context, Ownable {
         uint80 _until,
         uint source
     ) public onlyOwner returns (bool) {
+        require(_beneficiary != address(0), "Invalid Beneficiary!");
+        require(_amount != 0, "Invalid Amount!");
+
+
         address sender = _msgSender();
 
         vestings[_beneficiary].push(
@@ -79,4 +83,9 @@ contract JackVesting is Context, Ownable {
             vestings[sender][index].amount
         );
     }
+
+    function renounceOwnership() public virtual override onlyOwner {
+        revert OwnableInvalidOwner(address(0));
+    }
+
 }
