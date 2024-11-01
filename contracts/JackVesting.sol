@@ -8,6 +8,12 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract JackVesting is Context, Ownable {
     error TransferError(address sender, uint256 needed);
+    error InvalidVestingIndex();
+    error AllreadyClaimed();
+    error Locked();
+    error InvalidBeneficiary();
+    error InvalidAmount();
+    error InvalidTime();
 
     struct Vesting {
         uint80 until;
@@ -30,13 +36,17 @@ contract JackVesting is Context, Ownable {
         uint80 _until,
         uint source
     ) public onlyOwner returns (bool) {
-        require(_beneficiary != address(0), "Invalid Beneficiary!");
-        require(_amount != 0, "Invalid Amount!");
-        require(_until <= block.timestamp + maxVestingTime, "Vest is more than allowed");
-
-
+        if (_beneficiary == address(0)) {
+            revert InvalidBeneficiary();
+        }
+        if (_amount == 0) {
+            revert InvalidAmount();
+        }
+        if (_until > block.timestamp + maxVestingTime) {
+            revert InvalidTime();
+        }
+        
         address sender = _msgSender();
-
         vestings[_beneficiary].push(
             Vesting({
                 until: _until,
@@ -74,9 +84,17 @@ contract JackVesting is Context, Ownable {
 
     function claim(uint index) external {
         address sender = _msgSender();
-        require(vestings[sender].length > index, "Invalid Vesting Index");
-        require(vestings[sender][index].claimed == false, "Allready Claimed");
-        require(vestings[sender][index].until < block.timestamp, "Locked");
+        if (vestings[sender].length <= index) {
+            revert InvalidVestingIndex();
+        }
+        if (vestings[sender][index].claimed == true) {
+            revert AllreadyClaimed();
+        }
+
+        if (vestings[sender][index].until > block.timestamp) {
+            revert Locked();
+        }
+
         vestings[sender][index].claimed = true;
         SafeERC20.safeTransfer(
             IERC20(vestingToken),
@@ -88,5 +106,4 @@ contract JackVesting is Context, Ownable {
     function renounceOwnership() public virtual override onlyOwner {
         revert OwnableInvalidOwner(address(0));
     }
-
 }
