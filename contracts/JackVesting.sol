@@ -5,28 +5,30 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
-contract JackVesting is Context, Ownable {
+contract JackVesting is Context, Ownable2Step {
     error TransferError(address sender, uint256 needed);
     error InvalidVestingIndex();
     error AllreadyClaimed();
     error Locked();
     error InvalidBeneficiary();
-    error InvalidAmount();
-    error InvalidTime();
+    error AmountError();
+    error InvalidVestingTime();
 
     struct Vesting {
         uint80 until;
         bool claimed;
+        uint256 source;
         uint256 amount;
-        uint source;
     }
-    mapping(address vesting => Vesting[]) vestings;
+    mapping(address vesting => Vesting[]) public vestings;
 
-    address public vestingToken;
-    uint maxVestingTime = 3 * 365 days;
+    IERC20 public immutable vestingToken;
 
-    constructor(address _vestingToken) Ownable(msg.sender) {
+    uint256 public constant maxVestingTime = 3 * 365 days;
+
+    constructor(IERC20 _vestingToken) Ownable(msg.sender) {
         vestingToken = _vestingToken;
     }
 
@@ -34,52 +36,45 @@ contract JackVesting is Context, Ownable {
         address _beneficiary,
         uint256 _amount,
         uint80 _until,
-        uint source
+        uint256 _source
     ) public onlyOwner returns (bool) {
         if (_beneficiary == address(0)) {
             revert InvalidBeneficiary();
         }
         if (_amount == 0) {
-            revert InvalidAmount();
+            revert AmountError();
         }
-        if (_until > block.timestamp + maxVestingTime) {
-            revert InvalidTime();
+        if (_until > block.timestamp + maxVestingTime || _until < block.timestamp) {
+            revert InvalidVestingTime();
         }
-        
+
         address sender = _msgSender();
         vestings[_beneficiary].push(
             Vesting({
                 until: _until,
                 amount: _amount,
                 claimed: false,
-                source: source
+                source: _source
             })
         );
 
-        uint256 balanceBefore = IERC20(vestingToken).balanceOf(address(this));
+        uint256 balanceBefore = vestingToken.balanceOf(address(this));
 
         SafeERC20.safeTransferFrom(
-            IERC20(vestingToken),
+            vestingToken,
             sender,
             address(this),
             _amount
         );
 
-        uint256 transferedAmount = IERC20(vestingToken).balanceOf(
-            address(this)
-        ) - balanceBefore;
+        uint256 transferedAmount = vestingToken.balanceOf(address(this)) -
+            balanceBefore;
 
         if (transferedAmount != _amount) {
             revert TransferError(sender, _amount);
         }
 
         return true;
-    }
-
-    function getVestings(
-        address _beneficiary
-    ) public view returns (Vesting[] memory) {
-        return vestings[_beneficiary];
     }
 
     function claim(uint index) external {
@@ -97,7 +92,7 @@ contract JackVesting is Context, Ownable {
 
         vestings[sender][index].claimed = true;
         SafeERC20.safeTransfer(
-            IERC20(vestingToken),
+            vestingToken,
             sender,
             vestings[sender][index].amount
         );
