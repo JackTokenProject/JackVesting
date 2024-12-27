@@ -160,13 +160,15 @@ describe("JackVesting", function () {
         );
 
         //1 hour from now
-        let until = parseInt(parseInt(new Date().valueOf() / 1000 + 3600));
+        let until = parseInt(parseInt(new Date().valueOf() / 1000 + 13600));
         await jackVesting.addVesting(
             owner.address,
             ethers.parseUnits("10000", "ether"),
             until,
             0
         );
+
+        await time.increaseTo(parseInt(new Date().valueOf() / 1000 + 13601));
         await expect(jackVesting.claim(0)).to.not.be.reverted;
     });
 });

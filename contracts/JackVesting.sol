@@ -10,11 +10,19 @@ import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 contract JackVesting is Context, Ownable2Step {
     error TransferError(address sender, uint256 needed);
     error InvalidVestingIndex();
+    error InvalidVestingAddress();
     error AllreadyClaimed();
     error Locked();
     error InvalidBeneficiary();
     error AmountError();
     error InvalidVestingTime();
+
+    event VestingAdded(
+        address indexed _beneficiary,
+        uint256 _amount,
+        uint80 _until,
+        uint256 _source
+    );
 
     struct Vesting {
         uint80 until;
@@ -29,6 +37,9 @@ contract JackVesting is Context, Ownable2Step {
     uint256 public constant maxVestingTime = 3 * 365 days;
 
     constructor(IERC20 _vestingToken) Ownable(msg.sender) {
+        if(address(_vestingToken) == address(0)){
+            revert InvalidVestingAddress();
+        }
         vestingToken = _vestingToken;
     }
 
@@ -44,7 +55,10 @@ contract JackVesting is Context, Ownable2Step {
         if (_amount == 0) {
             revert AmountError();
         }
-        if (_until > block.timestamp + maxVestingTime || _until < block.timestamp) {
+        if (
+            _until > block.timestamp + maxVestingTime ||
+            _until <= block.timestamp
+        ) {
             revert InvalidVestingTime();
         }
 
@@ -74,6 +88,8 @@ contract JackVesting is Context, Ownable2Step {
             revert TransferError(sender, _amount);
         }
 
+        emit VestingAdded(_beneficiary, _amount, _until, _source);
+
         return true;
     }
 
@@ -82,7 +98,7 @@ contract JackVesting is Context, Ownable2Step {
         if (vestings[sender].length <= index) {
             revert InvalidVestingIndex();
         }
-        if (vestings[sender][index].claimed == true) {
+        if (vestings[sender][index].claimed) {
             revert AllreadyClaimed();
         }
 
